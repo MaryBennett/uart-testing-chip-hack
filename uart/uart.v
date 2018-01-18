@@ -56,7 +56,7 @@ module uart(  input        clk,
       if (reset) begin
  	 // Reset to the "IDLE" state
  	 transmit_state <= 0;
-	 word_state <= 1;
+	 word_state <= -1;
 	 led_value <= 1;
 	 
  	 // The UART line is set to '1' when idle, or reset
@@ -71,7 +71,7 @@ module uart(  input        clk,
  	     begin
  		// Idle state
 		transmit_string = "Hello, World!";
-		len = 1;
+		len = 13;
 		led_value <= 1;
 			       		
 		if (next_ed == 1) begin
@@ -100,29 +100,33 @@ module uart(  input        clk,
 		led_value <= 15;
 		UART_TX <= 1;
 		transmit_state <= 0;
-		if (word_state == len + 3) begin
-		   word_state <= 1;
+		if (word_state == -3) begin
+		   word_state <= len - 1;
  		end
 		else
-		  word_state <= word_state + 1;
-		begin //this prints each character in string
-		   if (word_state < len + 2) begin
-		      transmit_state <= 1;
-		      word_state <= word_state + 1;
-		      for(i = 0; i < 8; i = i + 1) begin
-			 transmit_data[i] <= transmit_string[word_state - 1 + i];
-		      end
-		   end
-		   if (word_state == len + 2) begin
+		begin
+		   if (word_state == -1) begin
 		      transmit_state <= 1;
 		      word_state <= word_state + 1;
 		      transmit_data <= 8'hA; //newline
 		   end
-		   if (word_state == len + 3) begin
+		   if (word_state == -2) begin
 		      transmit_state <= 0;   //back to idle
 		      word_state <= 1;
 		      transmit_data <= 8'hD; //carrage return
 		   end
+		   
+		   transmit_data[0] <= transmit_string[word_state*8];
+		   transmit_data[1] <= transmit_string[word_state*8+1];
+		   transmit_data[2] <= transmit_string[word_state*8+2];
+		   transmit_data[3] <= transmit_string[word_state*8+3];
+		   transmit_data[4] <= transmit_string[word_state*8+4];
+		   transmit_data[5] <= transmit_string[word_state*8+5];
+		   transmit_data[6] <= transmit_string[word_state*8+6];
+		   transmit_data[7] <= transmit_string[word_state*8+7];
+		   
+		   transmit_state <= 0;
+		   word_state <= word_state - 1;
 		end
              end
 

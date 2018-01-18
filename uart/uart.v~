@@ -34,7 +34,7 @@ module uart(  input        clk,
    reg [7:0] 		   transmit_data;
    reg 			   key1_reg;
    reg [4:0] 		   word_state;
-   reg [3:0] 		   word_value;
+   reg [3:0] 		   led_value;
    
    //reg [8:0] 		   buffer;
    integer 		   i;
@@ -50,14 +50,14 @@ module uart(  input        clk,
    // Tie UART_GND low
    assign UART_GND = 0;
 
-   assign led = word_value;
+   assign led = led_value;
 
    always @(posedge clk or posedge reset) begin
       if (reset) begin
  	 // Reset to the "IDLE" state
  	 transmit_state <= 0;
-	 world_state <= 1;
-	 world_value <= 1;
+	 word_state <= 1;
+	 led_value <= 1;
 	 
  	 // The UART line is set to '1' when idle, or reset
  	 UART_TX <= 1;
@@ -70,9 +70,10 @@ module uart(  input        clk,
  	   0:
  	     begin
  		// Idle state
-		transmit_string = "HELLO, WORLD!";
-		len = 13;
-	       		
+		transmit_string = "Hello, World!";
+		len = 1;
+		led_value <= 1;
+			       		
 		if (next_ed == 1) begin
 		   transmit_state <= 1;
 		end
@@ -82,9 +83,12 @@ module uart(  input        clk,
  		// Start bit state, and progress onto the next state
 		UART_TX <= 0;
 		transmit_state <= 2;
- 	     end
+		led_value <= 2;
+	     end
  	   2,3,4,5,6,7,8,9:
  	     begin
+		led_value <= 4;
+		
  		// Data bits
 		UART_TX <= transmit_data[transmit_state - 2];
 		transmit_state <= transmit_state + 1;
@@ -93,10 +97,10 @@ module uart(  input        clk,
  	     begin
  		// Stop bit, and transition back to idle (0)
  		/* Fill me in - drive the final bit onto UART_TX. */
+		led_value <= 15;
 		UART_TX <= 1;
 		transmit_state <= 0;
 		if (word_state == len + 3) begin
-		   world_value <= 1;
 		   word_state <= 1;
  		end
 		else
@@ -105,12 +109,6 @@ module uart(  input        clk,
 		   if (word_state < len + 2) begin
 		      transmit_state <= 1;
 		      word_state <= word_state + 1;
-		      if (word_value == 15) begin
-			 world_value <= 1;
-		      end
-		      else begin
-			 world_value <= word_value + 1;
-		      end
 		      for(i = 0; i < 8; i = i + 1) begin
 			 transmit_data[i] <= transmit_string[word_state - 1 + i];
 		      end
@@ -118,18 +116,11 @@ module uart(  input        clk,
 		   if (word_state == len + 2) begin
 		      transmit_state <= 1;
 		      word_state <= word_state + 1;
-		      if (word_value == 15) begin
-			 world_value <= 1;
-		      end
-		      else begin
-			 world_value <= word_value + 1;
-		      end
 		      transmit_data <= 8'hA; //newline
 		   end
 		   if (word_state == len + 3) begin
 		      transmit_state <= 0;   //back to idle
 		      word_state <= 1;
-		      world_value <= word_value + 1;
 		      transmit_data <= 8'hD; //carrage return
 		   end
 		end
